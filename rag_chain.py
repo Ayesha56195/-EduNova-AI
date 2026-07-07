@@ -1,10 +1,12 @@
 import os
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 from dotenv import load_dotenv
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
@@ -42,16 +44,16 @@ Question: {question}
 
 Answer:""")
     
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+    
     def clean_output(text):
-        # Remove everything after "Question:" if present
         if "Question:" in text:
             text = text.split("Question:")[0].strip()
         if "#educational_assistant" in text:
             text = text.split("#educational_assistant")[0].strip()
         return text.strip()
-
-    from langchain_core.runnables import RunnableLambda
-
+    
     chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
         | prompt
